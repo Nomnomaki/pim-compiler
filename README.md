@@ -2,7 +2,43 @@
 
 A compiler that converts C++ matrix multiplication code into PIM (Processing-In-Memory) instructions. This compiler specifically handles the multiplication of two matrices (matrix A × matrix B = matrix C).
 
-## Instruction Format (19-bit)
+## Instruction Format
+
+Each PIM instruction is 19 bits wide, structured as follows:
+- Bits [18:15]: Opcode (4 bits)
+- Bits [14:10]: Operand 1 (5 bits)
+- Bits [9:5]: Operand 2 (5 bits)
+- Bits [4:0]: Operand 3 (5 bits)
+
+### Supported Operations
+- MEM_LOAD (0000): Load data from memory
+- MEM_STORE (0001): Store data to memory
+- MAT_MUL (0010): Matrix multiplication operation
+- ADD (0011): Addition operation
+- SUB (0100): Subtraction operation
+
+## How It Works
+
+### 1. Intermediate Representation (IR)
+The compiler first converts the input C++ code into an IR (Intermediate Representation). This IR breaks down complex matrix operations into simple, atomic operations that can be translated into PIM instructions.
+
+### 2. Lookup Table Mechanism
+The compiler uses a lookup table to convert IR operations into PIM instructions. Here's how it works:
+
+```cpp
+// Example IR operation: LOAD A[i][j]
+// Gets converted to PIM instruction using lookup:
+// opcode: MEM_LOAD (0000)
+// operands: base_address + offset
+```
+
+The lookup table maps each IR operation to one or more PIM instructions, handling:
+- Memory access patterns
+- Register allocation
+- Operation sequencing
+
+### 3. Binary Generation
+Each instruction is packed into the 19-bit format:
 
 ## Features
 
