@@ -5,12 +5,14 @@ A compiler that converts C++ matrix multiplication code into PIM (Processing-In-
 ## Instruction Format
 
 Each PIM instruction is 19 bits wide, structured as follows:
+
 - Bits [18:15]: Opcode (4 bits)
 - Bits [14:10]: Operand 1 (5 bits)
 - Bits [9:5]: Operand 2 (5 bits)
 - Bits [4:0]: Operand 3 (5 bits)
 
 ### Supported Operations
+
 - MEM_LOAD (0000): Load data from memory into a register.
 - MEM_STORE (0001): Store data from a register to memory.
 - MAT_MUL (0010): Perform matrix multiplication using elements from registers.
@@ -22,38 +24,43 @@ Each PIM instruction is 19 bits wide, structured as follows:
 Here's a step-by-step overview of how the compiler takes input matrices and generates PIM instructions:
 
 1.  **Input Parsing (`main.cpp`)**:
-    *   Reads matrix A and matrix B dimensions and elements from standard input.
-    *   Stores the matrices in `std::vector<std::vector<int>>`.
-    *   Validates that the matrices are compatible for multiplication (inner dimensions match).
+
+    - Reads matrix A and matrix B dimensions and elements from standard input.
+    - Stores the matrices in `std::vector<std::vector<int>>`.
+    - Validates that the matrices are compatible for multiplication (inner dimensions match).
 
 2.  **Compilation Request (`main.cpp` -> `compiler.cpp`)**:
-    *   Creates a `Compiler` object.
-    *   Calls the `compiler.compile(matrix_a, matrix_b)` method.
+
+    - Creates a `Compiler` object.
+    - Calls the `compiler.compile(matrix_a, matrix_b)` method.
 
 3.  **Intermediate Representation (IR) Generation (`compiler.cpp`)**:
-    *   The `compile` method internally generates a sequence of high-level IR operations representing the matrix multiplication logic. This typically involves nested loops and individual load/multiply/accumulate/store operations.
-    *   For example, calculating `C[i][j] += A[i][k] * B[k][j]` is broken down into:
-        *   Load `A[i][k]`
-        *   Load `B[k][j]`
-        *   Multiply loaded values
-        *   Accumulate result (potentially using ADD)
-        *   Store final `C[i][j]`
+
+    - The `compile` method internally generates a sequence of high-level IR operations representing the matrix multiplication logic. This typically involves nested loops and individual load/multiply/accumulate/store operations.
+    - For example, calculating `C[i][j] += A[i][k] * B[k][j]` is broken down into:
+      - Load `A[i][k]`
+      - Load `B[k][j]`
+      - Multiply loaded values
+      - Accumulate result (potentially using ADD)
+      - Store final `C[i][j]`
 
 4.  **Lookup Table Translation (`compiler.cpp`)**:
-    *   Each IR operation is translated into one or more PIM instructions using a lookup mechanism. This is where the specific PIM ISA details are applied.
-    *   The compiler determines the correct opcode and calculates the operand values (memory addresses, register numbers) for each PIM instruction based on the IR operation.
+
+    - Each IR operation is translated into one or more PIM instructions using a lookup mechanism. This is where the specific PIM ISA details are applied.
+    - The compiler determines the correct opcode and calculates the operand values (memory addresses, register numbers) for each PIM instruction based on the IR operation.
 
 5.  **Binary Instruction Generation (`compiler.cpp` -> `instruction.hpp`)**:
-    *   Each PIM instruction (opcode and operands) is packed into the 19-bit binary format defined in `instruction.hpp`.
-    *   This involves bit shifting and masking to place each part of the instruction into its correct position within the 19 bits.
+
+    - Each PIM instruction (opcode and operands) is packed into the 19-bit binary format defined in `instruction.hpp`.
+    - This involves bit shifting and masking to place each part of the instruction into its correct position within the 19 bits.
 
 6.  **Output Generation (`main.cpp`)**:
-    *   The `compile` method returns a `std::vector<Instruction>` containing the generated PIM instructions.
-    *   `main.cpp` iterates through this vector.
-    *   For each `Instruction`, it prints:
-        *   A human-readable representation (e.g., `MEM_LOAD R1, A[0][0]`).
-        *   The 19-bit binary representation.
-        *   The hexadecimal representation of the binary instruction.
+    - The `compile` method returns a `std::vector<Instruction>` containing the generated PIM instructions.
+    - `main.cpp` iterates through this vector.
+    - For each `Instruction`, it prints:
+      - A human-readable representation (e.g., `MEM_LOAD R1, A[0][0]`).
+      - The 19-bit binary representation.
+      - The hexadecimal representation of the binary instruction.
 
 ## Lookup Table Mechanism
 
@@ -61,18 +68,18 @@ The "lookup table" isn't a literal data structure like a `std::map` in this impl
 
 Here's how the mapping generally works:
 
-*   **Loading Elements**: To load `A[i][k]`, the compiler:
-    *   Calculates the memory address for `A[i][k]` based on the matrix base address and the indices `i`, `k`.
-    *   Generates a `MEM_LOAD` instruction (`Opcode::MEM_LOAD`).
-    *   Assigns a destination register (e.g., Operand 1).
-    *   Places the calculated memory address (or parts of it) into the operand fields (e.g., Operand 2, Operand 3).
-*   **Performing Multiplication**: To multiply `A[i][k]` and `B[k][j]` (assuming they are loaded into registers R1 and R2):
-    *   Generates a `MAT_MUL` instruction (`Opcode::MAT_MUL`).
-    *   Assigns the source registers (R1, R2) and a destination register (R3 for the result) to the operand fields.
-*   **Storing Results**: To store the final calculated value of `C[i][j]` from a register (e.g., R4) back to memory:
-    *   Calculates the memory address for `C[i][j]`.
-    *   Generates a `MEM_STORE` instruction (`Opcode::MEM_STORE`).
-    *   Assigns the source register (R4) and the memory address to the operand fields.
+- **Loading Elements**: To load `A[i][k]`, the compiler:
+  - Calculates the memory address for `A[i][k]` based on the matrix base address and the indices `i`, `k`.
+  - Generates a `MEM_LOAD` instruction (`Opcode::MEM_LOAD`).
+  - Assigns a destination register (e.g., Operand 1).
+  - Places the calculated memory address (or parts of it) into the operand fields (e.g., Operand 2, Operand 3).
+- **Performing Multiplication**: To multiply `A[i][k]` and `B[k][j]` (assuming they are loaded into registers R1 and R2):
+  - Generates a `MAT_MUL` instruction (`Opcode::MAT_MUL`).
+  - Assigns the source registers (R1, R2) and a destination register (R3 for the result) to the operand fields.
+- **Storing Results**: To store the final calculated value of `C[i][j]` from a register (e.g., R4) back to memory:
+  - Calculates the memory address for `C[i][j]`.
+  - Generates a `MEM_STORE` instruction (`Opcode::MEM_STORE`).
+  - Assigns the source register (R4) and the memory address to the operand fields.
 
 The compiler manages register allocation and address calculation as part of this translation process, effectively acting as the "lookup" mechanism that converts the high-level algorithm into low-level PIM instructions.
 
@@ -112,7 +119,6 @@ This will create two executables in the `build` directory:
 - `pim_compiler`: The main program for compiling and simulating.
 - `pim_tests`: The unit test runner.
 
-
 ## Running the Compiler/Simulator
 
 To run the main program, you need to provide a C++ input file containing the definitions for `matrix_a` and `matrix_b`.
@@ -129,9 +135,10 @@ Replace `<input_file.cpp>` with the path to your C++ file containing the matrice
 **Example:**
 
 ```bash
-./build/pim_compiler ../input_matrices.cpp 
+./build/pim_compiler input_matrices.cpp
 ```
-(Assuming `input_matrices.cpp` is in the project root, one level above `build`)
+
+(Assuming `input_matrices.cpp` is in the project root and you have to be in root dir)
 
 **Output:**
 
@@ -227,6 +234,7 @@ _Note: The simulator's total memory size is calculated dynamically based on the 
 **Note**: This compiler is designed specifically for matrix multiplication operations only. It takes two input matrices (A and B) and produces their product (matrix C).
 
 Input format example:
+
 ```cpp
 // Matrix A (2x3)
 1 2 3
