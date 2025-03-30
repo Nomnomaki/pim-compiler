@@ -16,3 +16,4 @@ Makefile
 # IDE specific files (optional, but recommended)
 .vscode/
 .idea/
+instructions.txt
